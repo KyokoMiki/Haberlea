@@ -1,0 +1,589 @@
+# Chinese (Simplified) translations for Haberlea.
+# Copyright (C) 2026
+# This file is distributed under the same license as the Haberlea project.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Haberlea 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-01-07 07:20+0800\n"
+"PO-Revision-Date: 2026-01-07 07:20+0800\n"
+"Last-Translator: \n"
+"Language: zh_CN\n"
+"Language-Team: zh_CN <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+# Common
+msgid "Save Settings"
+msgstr "保存设置"
+
+msgid "Reload"
+msgstr "重新加载"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Confirm"
+msgstr "确认"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "Add"
+msgstr "添加"
+
+msgid "Edit"
+msgstr "编辑"
+
+msgid "Search"
+msgstr "搜索"
+
+msgid "Download"
+msgstr "下载"
+
+msgid "Settings"
+msgstr "设置"
+
+msgid "Logs"
+msgstr "日志"
+
+msgid "Logout"
+msgstr "退出登录"
+
+msgid "Login"
+msgstr "登录"
+
+msgid "Username"
+msgstr "用户名"
+
+msgid "Password"
+msgstr "密码"
+
+# Header
+msgid "Haberlea"
+msgstr "Haberlea"
+
+# Settings - WebUI
+msgid "WebUI Settings"
+msgstr "WebUI 设置"
+
+msgid "Server Settings"
+msgstr "服务器设置"
+
+msgid "Host Address"
+msgstr "主机地址 (Host)"
+
+msgid "Leave empty to listen on all interfaces (0.0.0.0)"
+msgstr "留空表示监听所有接口 (0.0.0.0)"
+
+msgid "Port"
+msgstr "端口 (Port)"
+
+msgid "Authentication Settings"
+msgstr "认证设置"
+
+msgid "Enable Login Authentication"
+msgstr "启用登录认证"
+
+msgid "Language Settings"
+msgstr "语言设置"
+
+msgid "Interface Language"
+msgstr "界面语言"
+
+msgid "Settings saved"
+msgstr "设置已保存"
+
+msgid "Settings reloaded"
+msgstr "设置已重新加载"
+
+msgid "Language will be applied after saving and refreshing"
+msgstr "保存设置并刷新页面后将应用语言"
+
+# Settings - General
+msgid "General"
+msgstr "常规"
+
+msgid "Download Settings"
+msgstr "下载设置"
+
+msgid "Download Path"
+msgstr "下载路径"
+
+msgid "Download Quality"
+msgstr "下载质量"
+
+msgid "Search Results Limit"
+msgstr "搜索结果数量"
+
+msgid "Artist Downloading"
+msgstr "艺术家下载"
+
+msgid "Return Credited Albums"
+msgstr "返回参与专辑"
+
+msgid "Skip Downloaded Separate Tracks"
+msgstr "跳过已下载的单曲"
+
+msgid "Ignore Different Artists"
+msgstr "忽略不同艺术家"
+
+# Settings - Formatting
+msgid "Formatting"
+msgstr "格式化"
+
+msgid "File Naming Format"
+msgstr "文件命名格式"
+
+msgid "Available variables: {name}, {artist}, {track_number}, ..."
+msgstr "可用变量: {name}, {artist}, {track_number}, ..."
+
+msgid "Album Folder Format"
+msgstr "专辑文件夹格式"
+
+msgid "Playlist Folder Format"
+msgstr "播放列表文件夹格式"
+
+msgid "Track Filename Format"
+msgstr "曲目文件名格式"
+
+msgid "Single Full Path Format"
+msgstr "单曲完整路径格式"
+
+msgid "Enable Zero Padding"
+msgstr "启用数字补零"
+
+msgid "Force Album Format"
+msgstr "强制使用专辑格式"
+
+# Settings - Codecs
+msgid "Codecs"
+msgstr "编解码器"
+
+msgid "Codec Options"
+msgstr "编解码器选项"
+
+msgid "Enable Proprietary Codecs (MQA, etc.)"
+msgstr "启用专有编解码器 (MQA等)"
+
+msgid "Enable Spatial Audio Codecs (Dolby Atmos, etc.)"
+msgstr "启用空间音频编解码器 (Dolby Atmos等)"
+
+msgid "Module Defaults"
+msgstr "模块默认设置"
+
+msgid "Lyrics Source"
+msgstr "歌词来源"
+
+msgid "Covers Source"
+msgstr "封面来源"
+
+msgid "Credits Source"
+msgstr "制作人员来源"
+
+# Settings - Covers
+msgid "Covers"
+msgstr "封面"
+
+msgid "Cover Settings"
+msgstr "封面设置"
+
+msgid "Embed Cover"
+msgstr "嵌入封面"
+
+msgid "Restrict Cover Size"
+msgstr "限制封面大小"
+
+msgid "Main Cover Compression"
+msgstr "主封面压缩"
+
+msgid "Main Cover Resolution"
+msgstr "主封面分辨率"
+
+msgid "Save External Cover"
+msgstr "保存外部封面"
+
+msgid "External Cover Format"
+msgstr "外部封面格式"
+
+msgid "External Cover Compression"
+msgstr "外部封面压缩"
+
+msgid "External Cover Resolution"
+msgstr "外部封面分辨率"
+
+msgid "Save Animated Cover"
+msgstr "保存动态封面"
+
+# Settings - Lyrics
+msgid "Lyrics"
+msgstr "歌词"
+
+msgid "Lyrics Settings"
+msgstr "歌词设置"
+
+msgid "Embed Lyrics"
+msgstr "嵌入歌词"
+
+msgid "Embed Synced Lyrics"
+msgstr "嵌入同步歌词"
+
+msgid "Save Synced Lyrics File (.lrc)"
+msgstr "保存同步歌词文件 (.lrc)"
+
+msgid "Playlist Settings"
+msgstr "播放列表设置"
+
+msgid "Save M3U Playlist"
+msgstr "保存 M3U 播放列表"
+
+msgid "M3U Path Type"
+msgstr "M3U 路径类型"
+
+msgid "Extended M3U Format"
+msgstr "扩展 M3U 格式"
+
+# Settings - Advanced
+msgid "Advanced"
+msgstr "高级"
+
+msgid "Advanced Settings"
+msgstr "高级设置"
+
+msgid "Concurrent Downloads"
+msgstr "并发下载数"
+
+msgid "Dry Run (Collect info only, no download)"
+msgstr "Dry Run（仅收集信息，不下载）"
+
+msgid "Debug Mode"
+msgstr "调试模式"
+
+msgid "Ignore Existing Files"
+msgstr "忽略已存在文件"
+
+msgid "Disable Subscription Checks"
+msgstr "禁用订阅检查"
+
+msgid "Abort Download When Single Failed"
+msgstr "单曲失败时中止下载"
+
+msgid "Enable Undesirable Conversions (lossy to lossy)"
+msgstr "启用不良转换（有损到有损）"
+
+msgid "Advanced Login System"
+msgstr "高级登录系统"
+
+msgid "Keep Original After Conversion"
+msgstr "保留转换前原文件"
+
+msgid "Cover Variance Threshold"
+msgstr "封面差异阈值"
+
+# Settings - Modules
+msgid "Modules"
+msgstr "模块"
+
+msgid "Module Settings"
+msgstr "模块设置"
+
+msgid "No configured modules"
+msgstr "没有配置的模块"
+
+msgid "Account"
+msgstr "账号"
+
+msgid "Add Account"
+msgstr "添加账号"
+
+msgid "Delete this account"
+msgstr "删除此账号"
+
+msgid "At least one account must be kept"
+msgstr "至少需要保留一个账号"
+
+msgid "Account deleted"
+msgstr "账号已删除"
+
+msgid "Re-login"
+msgstr "重新登录"
+
+msgid "Clear login data, will need to re-login on next use"
+msgstr "清空登录数据，下次使用时需重新登录"
+
+msgid "Login data cleared, will re-login on next use"
+msgstr "登录数据已清除，下次使用时将重新登录"
+
+msgid "Failed to clear login data"
+msgstr "清除登录数据失败"
+
+# Settings - Extensions
+msgid "Extensions"
+msgstr "扩展"
+
+msgid "Extension Settings"
+msgstr "扩展设置"
+
+msgid "No installed extensions"
+msgstr "没有已安装的扩展"
+
+msgid "Post-Download Processing"
+msgstr "下载后处理"
+
+msgid "Priority"
+msgstr "优先级"
+
+msgid "Enable RAR Compression"
+msgstr "启用 RAR 压缩"
+
+msgid "RAR Executable Path"
+msgstr "RAR 可执行文件路径"
+
+msgid "Compression Level (0-5)"
+msgstr "压缩级别 (0-5)"
+
+msgid "Delete archive and source files after upload"
+msgstr "上传成功后删除压缩包和源文件"
+
+msgid "Compression Password"
+msgstr "压缩密码"
+
+msgid "Enable Baidu Netdisk Upload"
+msgstr "启用百度网盘上传"
+
+msgid "BaiduPCS-Go Path"
+msgstr "BaiduPCS-Go 路径"
+
+msgid "Upload Target Path"
+msgstr "上传目标路径"
+
+# CLI Messages
+msgid "Completed: {} tracks"
+msgstr "已完成: {} 个曲目"
+
+msgid "Failed: {} tracks"
+msgstr "失败: {} 个曲目"
+
+msgid "No URLs provided."
+msgstr "未提供URL。"
+
+msgid "Invalid URL: \"{}\""
+msgstr "无效的URL: \"{}\""
+
+msgid "Unknown module \"{}\". Available: {}"
+msgstr "未知模块 \"{}\"。可用: {}"
+
+msgid "Invalid media type \"{}\". Choose from: {}"
+msgstr "无效的媒体类型 \"{}\"。可选: {}"
+
+msgid "No results for {}: {}"
+msgstr "没有找到 {} 的结果: {}"
+
+msgid "Selection: "
+msgstr "选择: "
+
+msgid "Please enter a number."
+msgstr "请输入数字。"
+
+msgid "Invalid selection."
+msgstr "无效的选择。"
+
+msgid "Available modules:"
+msgstr "可用模块:"
+
+msgid "Installed modules:"
+msgstr "已安装的模块:"
+
+msgid "settings.toml has been refreshed successfully."
+msgstr "settings.toml 已成功刷新。"
+
+msgid "Failed to refresh settings: {}"
+msgstr "刷新设置失败: {}"
+
+msgid "Testing all installed modules...\\n"
+msgstr "测试所有已安装的模块...\\n"
+
+msgid "no test URL configured (skipped)"
+msgstr "未配置测试URL (已跳过)"
+
+msgid "\\nNo modules with test URLs found."
+msgstr "\\n未找到配置了测试URL的模块。"
+
+msgid "\\nRunning tests for {} modules...\\n"
+msgstr "\\n正在测试 {} 个模块...\\n"
+
+msgid "\\n=== Test Results ==="
+msgstr "\\n=== 测试结果 ==="
+
+msgid "\\nTest failed with error: {}"
+msgstr "\\n测试失败，错误: {}"
+
+msgid "Haberlea v0.1.0"
+msgstr "Haberlea v0.1.0"
+
+msgid "Modular music archival tool"
+msgstr "模块化音乐归档工具"
+
+# Download Page
+msgid "Music Download"
+msgstr "音乐下载"
+
+msgid "Download link added, click to start download"
+msgstr "已添加下载链接，点击开始下载"
+
+msgid "Enter Download URL"
+msgstr "输入下载链接"
+
+msgid "URL (one per line)"
+msgstr "URL（每行一个链接）"
+
+msgid "Start Download"
+msgstr "开始下载"
+
+msgid "Quick Options"
+msgstr "快速选项"
+
+msgid "Dry Run"
+msgstr "Dry Run"
+
+msgid "enabled"
+msgstr "已启用"
+
+msgid "disabled"
+msgstr "已禁用"
+
+msgid "Download Queue"
+msgstr "下载队列"
+
+msgid "Clear"
+msgstr "清空"
+
+msgid "Download Log"
+msgstr "下载日志"
+
+msgid "Queue is empty"
+msgstr "队列为空"
+
+msgid "Download in progress"
+msgstr "下载正在进行中"
+
+msgid "Please enter download URL"
+msgstr "请输入下载链接"
+
+msgid "Please enter valid download URL"
+msgstr "请输入有效的下载链接"
+
+msgid "Queue cleared"
+msgstr "队列已清空"
+
+msgid "Starting download"
+msgstr "开始下载"
+
+msgid "links"
+msgstr "个链接"
+
+msgid "Service"
+msgstr "服务"
+
+msgid "items"
+msgstr "个媒体"
+
+msgid "Done"
+msgstr "完成"
+
+msgid "success"
+msgstr "成功"
+
+msgid "failed"
+msgstr "失败"
+
+msgid "Download error"
+msgstr "下载错误"
+
+msgid "Details"
+msgstr "详细信息"
+
+msgid "Unexpected error"
+msgstr "未预期的错误"
+
+msgid "Added"
+msgstr "已添加"
+
+msgid "jobs"
+msgstr "个任务"
+
+msgid "tracks"
+msgstr "首曲目"
+
+msgid "Track list"
+msgstr "曲目列表"
+
+msgid "and"
+msgstr "还有"
+
+msgid "more"
+msgstr "首"
+
+# Search Page
+msgid "Music Search"
+msgstr "音乐搜索"
+
+msgid "Type"
+msgstr "类型"
+
+msgid "Search keyword"
+msgstr "搜索关键词"
+
+msgid "Enter artist, album or track name..."
+msgstr "输入艺术家、专辑或歌曲名称..."
+
+msgid "Search Results"
+msgstr "搜索结果"
+
+msgid "Please enter search keyword"
+msgstr "请输入搜索关键词"
+
+msgid "Please select a service"
+msgstr "请选择服务"
+
+msgid "Searching"
+msgstr "正在搜索"
+
+msgid "Search failed"
+msgstr "搜索失败"
+
+msgid "Enter keyword to start searching"
+msgstr "输入关键词开始搜索"
+
+msgid "Added to download queue"
+msgstr "已添加到下载队列"
+
+# Logs Page
+msgid "Application Logs"
+msgstr "应用日志"
+
+msgid "Refresh"
+msgstr "刷新"
+
+msgid "Clear Logs"
+msgstr "清空日志"
+
+msgid "Logs refreshed"
+msgstr "日志已刷新"
+
+msgid "Logs cleared"
+msgstr "日志已清空"
+
+# Auth Page
+msgid "Invalid username or password"
+msgstr "用户名或密码错误"
+
+msgid "Haberlea Login"
+msgstr "Haberlea 登录"
+
+msgid "accounts"
+msgstr "个账号"

@@ -1,0 +1,132 @@
+"""M3U playlist file utilities.
+
+This module provides functionality for creating and managing M3U playlist files
+with support for extended M3U format and concurrent write safety.
+"""
+
+import asyncio
+import os
+from typing import ClassVar
+
+import aiofiles
+
+from .models import TrackInfo
+
+
+class M3UPlaylistWriter:
+    """Handles M3U playlist file operations with concurrent write safety.
+
+    This class provides methods to create and append to M3U playlist files,
+    supporting both simple and extended M3U formats. It uses file-based locking
+    to ensure safe concurrent writes from multiple async tasks.
+
+    Attributes:
+        extended: Whether to use extended M3U format with #EXTINF tags.
+        path_mode: Path mode for track entries ('absolute' or 'relative').
+    """
+
+    # Class-level lock registry for concurrent access to the same playlist
+    _locks: ClassVar[dict[str, asyncio.Lock]] = {}
+    _locks_lock: ClassVar[asyncio.Lock | None] = None
+
+    def __init__(self, extended: bool, path_mode: str) -> None:
+        """Initialize playlist writer.
+
+        Args:
+            extended: Whether to use extended M3U format with #EXTINF metadata.
+            path_mode: Path mode for track entries ('absolute' or 'relative').
+        """
+        self.extended = extended
+        self.path_mode = path_mode
+
+    @classmethod
+    async def _get_lock(cls, playlist_path: str) -> asyncio.Lock:
+        """Get or create a lock for a specific playlist file.
+
+        Args:
+            playlist_path: Path to the playlist file.
+
+        Returns:
+            An asyncio.Lock for the specified playlist.
+        """
+        # Lazily create the class-level lock if it doesn't exist
+        if cls._locks_lock is None:
+            cls._locks_lock = asyncio.Lock()
+
+        async with cls._locks_lock:
+            if playlist_path not in cls._locks:
+                cls._locks[playlist_path] = asyncio.Lock()
+            return cls._locks[playlist_path]
+
+    async def create(self, playlist_path: str) -> None:
+        """Create empty playlist file with optional header.
+
+        Creates a new M3U playlist file. If extended format is enabled,
+        writes the #EXTM3U header.
+
+        Args:
+            playlist_path: Path to the playlist file.
+        """
+        lock = await self._get_lock(playlist_path)
+        async with lock, aiofiles.open(playlist_path, "w", encoding="utf-8") as f:
+            if self.extended:
+                await f.write("#EXTM3U\n")
+
+    async def add_track(
+        self,
+        playlist_path: str,
+        track_info: TrackInfo,
+        track_location: str,
+    ) -> None:
+        """Add a track entry to the playlist.
+
+        Appends a track entry to an existing playlist file. In extended format,
+        includes #EXTINF metadata with duration and artist/title information.
+
+        Args:
+            playlist_path: Path to the playlist file.
+            track_info: Track information containing metadata.
+            track_location: Path to the track file.
+        """
+        # Build track path based on path_mode
+        track_path = self._build_track_path(playlist_path, track_location)
+
+        # Build entry lines
+        lines: list[str] = []
+        if self.extended:
+            duration = track_info.duration or -1
+            artist = track_info.artists[0] if track_info.artists else "Unknown"
+            lines.append(f"#EXTINF:{duration},{artist} - {track_info.name}")
+        lines.append(track_path)
+
+        # Write with lock to ensure concurrent safety
+        lock = await self._get_lock(playlist_path)
+        async with lock, aiofiles.open(playlist_path, "a", encoding="utf-8") as f:
+            await f.write("\n".join(lines) + "\n")
+
+    def _build_track_path(self, playlist_path: str, track_location: str) -> str:
+        """Build the track path based on path_mode setting.
+
+        Args:
+            playlist_path: Path to the playlist file.
+            track_location: Absolute or relative path to the track file.
+
+        Returns:
+            The formatted track path for the playlist entry.
+        """
+        if self.path_mode == "absolute":
+            return os.path.abspath(track_location)
+        # relative mode
+        return os.path.relpath(track_location, os.path.dirname(playlist_path))
+
+    @classmethod
+    async def cleanup_locks(cls) -> None:
+        """Clean up unused locks from the registry.
+
+        Call this periodically or after batch operations to free memory
+        from locks that are no longer needed.
+        """
+        if cls._locks_lock is None:
+            return
+        async with cls._locks_lock:
+            cls._locks.clear()

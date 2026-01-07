@@ -1,0 +1,62 @@
+[build-system]
+requires = ["uv_build"]
+build-backend = "uv_build"
+
+[tool.uv.workspace]
+members = ["modules/*", "extensions/*"]
+
+[project]
+name = "haberlea"
+version = "0.1.0"
+description = "A modular music downloader with support for multiple streaming services"
+requires-python = ">=3.11"
+dependencies = [
+    "aiofiles>=25.1.0",
+    "aiohttp[speedups]>=3.13.2",
+    "anyio>=4.12.0",
+    "asyncclick>=8.3.0.7",
+    "av>=16.0.1",
+    "babel>=2.17.0",
+    "humanfriendly>=10.0",
+    "msgspec[toml]>=0.20.0",
+    "mutagen>=1.47.0",
+    "nicegui>=3.4.1",
+    "pillow>=12.0.0",
+    "rich>=14.2.0",
+    "tenacity>=9.1.2",
+    "uvloop>=0.22.1; sys_platform != 'win32'",
+    "winloop>=0.4.1; sys_platform == 'win32'",
+]
+
+[project.scripts]
+haberlea = "haberlea.cli:main"
+haberlea-webui = "haberlea.webui.main:main"
+
+# Module plugins - music service integrations
+[project.entry-points."haberlea.modules"]
+
+# Extension plugins - post-download processing
+[project.entry-points."haberlea.extensions"]
+
+[dependency-groups]
+dev = ["ruff"]
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "UP", "B", "SIM", "I", "TC", "C90"]
+
+[tool.pyright]
+include = ["src"]
+typeCheckingMode = "standard"
+reportPossiblyUnboundVariable = "error"
+reportUnreachable = false
+reportInvalidCast = "error"
+reportUnsafeMultipleInheritance = "error"
+reportImplicitAbstractClass = "error"
+reportInvalidAbstractMethod = "error"
+reportOptionalMemberAccess = "warning"
+reportOptionalSubscript = "warning"
+reportOptionalOperand = "warning"
+reportRedeclaration = "warning"

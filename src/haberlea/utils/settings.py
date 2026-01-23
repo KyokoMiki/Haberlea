@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import msgspec
+import platformdirs
 
 # =============================================================================
 # Global Settings Structures
@@ -301,7 +302,9 @@ def get_default_settings() -> AppSettings:
 
 # Global settings singleton
 _app_settings: AppSettings | None = None
-_settings_path: Path = Path("config/settings.toml")
+_settings_path: Path = (
+    Path(platformdirs.user_config_dir("Haberlea", ensure_exists=True)) / "settings.toml"
+)
 
 
 class _SettingsProxy:

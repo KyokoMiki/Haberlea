@@ -4,11 +4,10 @@ This module provides functionality for creating and managing M3U playlist files
 with support for extended M3U format and concurrent write safety.
 """
 
-import asyncio
 import os
 from typing import ClassVar
 
-import aiofiles
+import anyio
 
 from .models import TrackInfo
 
@@ -26,8 +25,8 @@ class M3UPlaylistWriter:
     """
 
     # Class-level lock registry for concurrent access to the same playlist
-    _locks: ClassVar[dict[str, asyncio.Lock]] = {}
-    _locks_lock: ClassVar[asyncio.Lock | None] = None
+    _locks: ClassVar[dict[str, anyio.Lock]] = {}
+    _locks_lock: ClassVar[anyio.Lock | None] = None
 
     def __init__(self, extended: bool, path_mode: str) -> None:
         """Initialize playlist writer.
@@ -40,22 +39,22 @@ class M3UPlaylistWriter:
         self.path_mode = path_mode
 
     @classmethod
-    async def _get_lock(cls, playlist_path: str) -> asyncio.Lock:
+    async def _get_lock(cls, playlist_path: str) -> anyio.Lock:
         """Get or create a lock for a specific playlist file.
 
         Args:
             playlist_path: Path to the playlist file.
 
         Returns:
-            An asyncio.Lock for the specified playlist.
+            An anyio.Lock for the specified playlist.
         """
         # Lazily create the class-level lock if it doesn't exist
         if cls._locks_lock is None:
-            cls._locks_lock = asyncio.Lock()
+            cls._locks_lock = anyio.Lock()
 
         async with cls._locks_lock:
             if playlist_path not in cls._locks:
-                cls._locks[playlist_path] = asyncio.Lock()
+                cls._locks[playlist_path] = anyio.Lock()
             return cls._locks[playlist_path]
 
     async def create(self, playlist_path: str) -> None:
@@ -68,9 +67,9 @@ class M3UPlaylistWriter:
             playlist_path: Path to the playlist file.
         """
         lock = await self._get_lock(playlist_path)
-        async with lock, aiofiles.open(playlist_path, "w", encoding="utf-8") as f:
-            if self.extended:
-                await f.write("#EXTM3U\n")
+        async with lock:
+            content = "#EXTM3U\n" if self.extended else ""
+            await anyio.Path(playlist_path).write_text(content, encoding="utf-8")
 
     async def add_track(
         self,
@@ -101,7 +100,10 @@ class M3UPlaylistWriter:
 
         # Write with lock to ensure concurrent safety
         lock = await self._get_lock(playlist_path)
-        async with lock, aiofiles.open(playlist_path, "a", encoding="utf-8") as f:
+        async with (
+            lock,
+            await anyio.open_file(playlist_path, "a", encoding="utf-8") as f,
+        ):
             await f.write("\n".join(lines) + "\n")
 
     def _build_track_path(self, playlist_path: str, track_location: str) -> str:

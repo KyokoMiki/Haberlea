@@ -112,7 +112,6 @@ class SearchResult(msgspec.Struct, kw_only=True):
 
 class DownloadEnum(Enum):
     URL = "url"
-    TEMP_FILE_PATH = "temp_file_path"
     DIRECT = "direct"  # Downloaded directly to target path
     MPD = "mpd"
 

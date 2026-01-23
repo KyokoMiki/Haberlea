@@ -893,7 +893,7 @@ async def sessions_list(ctx: click.Context, module: str) -> None:
     click.echo("  - default (active)")
     click.echo()
     click.echo("Note: Session listing is managed automatically in simple mode.")
-    click.echo("For advanced mode, edit config/loginstorage.json directly.")
+    click.echo("For advanced mode, edit loginstorage.json in your config directory.")
 
 
 @sessions_group.command("info")

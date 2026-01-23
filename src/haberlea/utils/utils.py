@@ -4,7 +4,6 @@ This module provides common utility functions used throughout the application,
 including file operations, HTTP session management, and image processing.
 """
 
-import asyncio
 import errno
 import hashlib
 import logging
@@ -18,10 +17,10 @@ from functools import reduce
 from pathlib import Path
 from typing import Any
 
-import aiofiles
-import aiofiles.os
 import aiohttp
+import anyio
 import msgspec
+from asyncer import asyncify
 from PIL import Image, ImageChops
 from tenacity import (
     before_sleep_log,
@@ -185,7 +184,7 @@ async def _download_with_retry(
         response.raise_for_status()
         total = response.content_length or 0
 
-        async with aiofiles.open(file_location, "wb") as f:
+        async with await anyio.open_file(file_location, "wb") as f:
             async for chunk in response.content.iter_chunked(1048576):
                 if chunk:
                     await f.write(chunk)
@@ -434,10 +433,10 @@ async def delete_path(path: Path) -> None:
     """
     try:
         if path.is_dir():
-            await asyncio.to_thread(shutil.rmtree, path)
+            await asyncify(shutil.rmtree)(str(path))
             logger.info("Deleted directory: %s", path)
         else:
-            await aiofiles.os.remove(path)
+            await anyio.Path(path).unlink()
             logger.info("Deleted file: %s", path)
     except OSError:
         logger.exception("Failed to delete %s", path)

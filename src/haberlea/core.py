@@ -4,7 +4,6 @@ This module provides the main orchestration layer using a global download queue
 that collects all tracks and downloads them concurrently.
 """
 
-import asyncio
 import base64
 import inspect
 import logging
@@ -12,9 +11,11 @@ from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
+import anyio
 import msgspec
+import platformdirs
 from rich import print
 from rich.logging import RichHandler
 
@@ -60,6 +61,9 @@ from .utils.settings import (
     settings,
 )
 from .utils.utils import hash_string, read_temporary_setting, set_temporary_setting
+
+if TYPE_CHECKING:
+    from anyio.abc import TaskGroup
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +126,9 @@ class Haberlea:
         settings_loader: SettingsLoaderProtocol | None = None,
     ) -> None:
         """Initializes the Haberlea orchestrator."""
-        self._config_dir = config_dir or Path("config")
+        self._config_dir = config_dir or Path(
+            platformdirs.user_config_dir("Haberlea", ensure_exists=True)
+        )
         self._settings_path = self._config_dir / "settings.toml"
         self._session_path = self._config_dir / "loginstorage.json"
         self._settings_loader = settings_loader or TomlSettingsLoader()
@@ -952,13 +958,14 @@ async def haberlea_core_download(
     gs = settings.global_settings
 
     # TaskGroup for managing extension tasks
-    extension_tasks: asyncio.TaskGroup | None = None
+    extension_tasks: TaskGroup | None = None
 
     # Create job completion callback that runs extensions in background
     async def on_job_complete(job: DownloadJob) -> None:
         """Spawns background task to run extensions when job completes."""
+        nonlocal extension_tasks
         if extension_tasks is not None and job.download_path:
-            extension_tasks.create_task(_run_extensions(haberlea_session, job))
+            extension_tasks.start_soon(_run_extensions, haberlea_session, job)
 
     # Create global download queue
     queue = DownloadQueue(
@@ -982,6 +989,10 @@ async def haberlea_core_download(
         third_party_modules,
     )
 
+    # Initialize return values in case of early exception
+    completed: list[str] = []
+    failed: list[tuple[str, str]] = []
+
     try:
         # Phase 1: Collect all tracks into the queue
         print("=== Collecting tracks ===")
@@ -1002,7 +1013,7 @@ async def haberlea_core_download(
 
         # Phase 2: Process all tracks concurrently with extension tasks
         # TaskGroup ensures all extension tasks complete before exiting
-        async with asyncio.TaskGroup() as tg:
+        async with anyio.create_task_group() as tg:
             extension_tasks = tg
             completed, failed = await downloader.process_queue()
 

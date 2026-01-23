@@ -5,7 +5,6 @@ global queue that collects all tracks and downloads them concurrently,
 regardless of their source (album, playlist, artist, or single track).
 """
 
-import asyncio
 import logging
 import os
 import shutil
@@ -14,9 +13,10 @@ from pathlib import Path
 from time import gmtime, strftime
 from typing import Any
 
-import aiofiles
 import aiohttp
+import anyio
 import msgspec
+from asyncer import asyncify
 from rich import print
 from tenacity import (
     retry,
@@ -154,7 +154,7 @@ class Downloader:
 
         # Cover cache: album_id -> temp file path
         self._cover_cache: dict[str, Path] = {}
-        self._cover_cache_lock = asyncio.Lock()
+        self._cover_cache_lock = anyio.Lock()
 
         # Quality settings from global settings
         gs = settings.global_settings
@@ -484,9 +484,9 @@ class Downloader:
 
         print(f"\n=== Processing {len(tasks)} tracks ===\n")
 
-        async with asyncio.TaskGroup() as tg:
+        async with anyio.create_task_group() as tg:
             for task in tasks:
-                tg.create_task(self._download_track_task(task))
+                tg.start_soon(self._download_track_task, task)
 
         return self._queue.get_results()
 
@@ -670,8 +670,9 @@ class Downloader:
         if synced_lyrics and settings.global_settings.lyrics.save_synced_lyrics:
             lrc_location = f"{track_location_name}.lrc"
             if not os.path.isfile(lrc_location):
-                async with aiofiles.open(lrc_location, "w", encoding="utf-8") as f:
-                    await f.write(synced_lyrics)
+                await anyio.Path(lrc_location).write_text(
+                    synced_lyrics, encoding="utf-8"
+                )
 
         # Get credits
         credits_list = await self._get_credits(
@@ -730,9 +731,7 @@ class Downloader:
             track_info.tags.total_tracks = task.total_tracks
 
     @retry(
-        retry=retry_if_exception_type(
-            (aiohttp.ClientError, TimeoutError, OSError, asyncio.TimeoutError)
-        ),
+        retry=retry_if_exception_type((aiohttp.ClientError, TimeoutError, OSError)),
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=30),
         reraise=True,
@@ -944,8 +943,9 @@ class Downloader:
         if album_info.description:
             desc_path = f"{album_path}description.txt"
             if not os.path.exists(desc_path):
-                async with aiofiles.open(desc_path, "w", encoding="utf-8") as f:
-                    await f.write(album_info.description)
+                await anyio.Path(desc_path).write_text(
+                    album_info.description, encoding="utf-8"
+                )
 
     async def _download_playlist_assets(
         self, playlist_path: str, playlist_info: PlaylistInfo, module_name: str
@@ -985,8 +985,9 @@ class Downloader:
         if playlist_info.description:
             desc_path = f"{playlist_path}description.txt"
             if not os.path.exists(desc_path):
-                async with aiofiles.open(desc_path, "w", encoding="utf-8") as f:
-                    await f.write(playlist_info.description)
+                await anyio.Path(desc_path).write_text(
+                    playlist_info.description, encoding="utf-8"
+                )
 
     async def _setup_m3u_playlist(
         self, playlist_info: PlaylistInfo, playlist_path: str
@@ -1432,8 +1433,8 @@ class Downloader:
 
         async with self._temp.file(suffix=f".{new_codec.container.name}") as temp_path:
             try:
-                await asyncio.to_thread(
-                    transcode, track_location, str(temp_path), new_codec, conv_flags
+                await asyncify(transcode)(
+                    track_location, str(temp_path), new_codec, conv_flags
                 )
             except Exception as e:
                 raise ConversionError(codec.name, new_codec.name, str(e)) from e

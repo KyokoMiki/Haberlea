@@ -5,10 +5,10 @@ All progress updates (track status, file download, etc.) flow through
 a single callback interface.
 """
 
-import asyncio
 from collections.abc import Callable, Coroutine
 from contextvars import ContextVar
 from enum import Enum
+from inspect import iscoroutine
 from typing import Any
 
 import humanfriendly
@@ -355,7 +355,7 @@ async def _dispatch(event: ProgressEvent) -> None:
     """
     if _callback is not None:
         result = _callback(event)
-        if asyncio.iscoroutine(result):
+        if iscoroutine(result):
             await result
 
 

@@ -1,10 +1,10 @@
 """Modern temporary file management for Haberlea.
 
 This module provides a centralized, type-safe, and context-managed approach
-to temporary file handling using aiofiles.tempfile for native async support.
+to temporary file handling using anyio for native async support.
 
 Features:
-- Native async temporary file/directory operations via aiofiles.tempfile
+- Native async temporary file/directory operations via anyio
 - Automatic cleanup via async context managers
 - pathlib.Path integration
 - Proper resource management
@@ -17,7 +17,7 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import Any
 
-from aiofiles.tempfile import NamedTemporaryFile, TemporaryDirectory
+from anyio import NamedTemporaryFile, TemporaryDirectory
 
 from .utils import delete_path, download_file
 
@@ -26,9 +26,8 @@ class TempFileManager:
     """Centralized temporary file manager with automatic cleanup.
 
     This class provides a modern, async-native approach to temporary file
-    handling using aiofiles.tempfile. All temporary files created through
-    this manager are tracked and automatically cleaned up when the manager
-    exits its context.
+    handling using anyio. All temporary files created through this manager
+    are tracked and automatically cleaned up when the manager exits its context.
 
     Example:
         ```python

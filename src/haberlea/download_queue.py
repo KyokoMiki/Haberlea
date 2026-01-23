@@ -6,7 +6,6 @@ Jobs represent the original download request (album, playlist, artist, track),
 while tracks are the actual execution units.
 """
 
-import asyncio
 import logging
 import time
 import uuid
@@ -14,6 +13,7 @@ from collections.abc import Callable, Coroutine
 from enum import Enum
 from typing import Any
 
+import anyio
 import msgspec
 
 from .plugins.base import ModuleBase
@@ -213,7 +213,7 @@ class DownloadQueue:
             codec_options: Codec options for downloads.
             on_job_complete: Optional callback when a job completes.
         """
-        self.semaphore = asyncio.Semaphore(max_concurrent)
+        self.semaphore = anyio.Semaphore(max_concurrent)
         self._quality_tier = quality_tier
         self._codec_options = codec_options
         self._on_job_complete = on_job_complete
@@ -221,7 +221,7 @@ class DownloadQueue:
         # Job management
         self._jobs: dict[str, DownloadJob] = {}
         self._track_tasks: dict[str, TrackTask] = {}
-        self._job_lock = asyncio.Lock()
+        self._job_lock = anyio.Lock()
 
     def _generate_job_id(self, original_url: str) -> str:
         """Generates a unique job ID from the original URL.

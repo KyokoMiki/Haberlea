@@ -24,11 +24,13 @@ class GeneralSettings(msgspec.Struct, kw_only=True):
         download_path: Default download directory path.
         download_quality: Audio quality tier (minimum/low/medium/high/lossless/hifi).
         search_limit: Maximum number of search results to return.
+        temp_path: Temporary files directory path. Defaults to system temp directory.
     """
 
     download_path: str = "./downloads/"
     download_quality: str = "hifi"
     search_limit: int = 10
+    temp_path: str = ""
 
 
 class ArtistDownloadingSettings(msgspec.Struct, kw_only=True):

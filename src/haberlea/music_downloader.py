@@ -1146,9 +1146,6 @@ class Downloader:
                         headers=download_info.file_url_headers,
                         task_id=track_id,
                     )
-                case DownloadEnum.TEMP_FILE_PATH:
-                    assert download_info.temp_file_path is not None
-                    shutil.move(download_info.temp_file_path, track_location)
                 case DownloadEnum.DIRECT:
                     pass
                 case _:

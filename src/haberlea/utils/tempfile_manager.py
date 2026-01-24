@@ -8,6 +8,7 @@ Features:
 - Automatic cleanup via async context managers
 - pathlib.Path integration
 - Proper resource management
+- Configurable base directory from settings
 """
 
 import uuid
@@ -19,6 +20,7 @@ from typing import Any
 
 from anyio import NamedTemporaryFile, TemporaryDirectory
 
+from .settings import settings
 from .utils import delete_path, download_file
 
 
@@ -59,11 +61,20 @@ class TempFileManager:
         """Initialize the temporary file manager.
 
         Args:
-            base_dir: Base directory for temporary files. Defaults to system
-                temp directory.
+            base_dir: Base directory for temporary files. If None, uses the
+                temp_path from settings, or system temp directory if not configured.
             prefix: Prefix for temporary file/directory names.
         """
-        self._base_dir = Path(base_dir) if base_dir else Path(gettempdir())
+        if base_dir:
+            self._base_dir = Path(base_dir)
+        else:
+            # Use temp_path from settings if configured, otherwise system temp
+            temp_path = settings.global_settings.general.temp_path
+            self._base_dir = Path(temp_path) if temp_path else Path(gettempdir())
+        
+        # Ensure base directory exists
+        self._base_dir.mkdir(parents=True, exist_ok=True)
+        
         self._prefix = prefix
         self._tracked_paths: set[Path] = set()
 
@@ -218,6 +229,42 @@ class TempFileManager:
             task_id=task_id,
         )
         return path
+
+    def get_temp_filename(self, suffix: str = "", prefix: str | None = None) -> Path:
+        """Generate a temporary file path without tracking or creating the file.
+
+        The caller is responsible for creating and cleaning up the file.
+        This method does not track the path for automatic cleanup.
+
+        Args:
+            suffix: File suffix (e.g., ".flac", ".jpg").
+            prefix: File prefix. Defaults to manager's prefix.
+
+        Returns:
+            Path to a non-existent temporary file location.
+        """
+        file_prefix = prefix or self._prefix
+        unique_id = uuid.uuid4().hex
+        filename = f"{file_prefix}{unique_id}{suffix}"
+        return self._base_dir / filename
+
+    def get_temp_dirname(self, suffix: str = "", prefix: str | None = None) -> Path:
+        """Generate a temporary directory path without tracking or creating it.
+
+        The caller is responsible for creating and cleaning up the directory.
+        This method does not track the path for automatic cleanup.
+
+        Args:
+            suffix: Directory suffix.
+            prefix: Directory prefix. Defaults to manager's prefix.
+
+        Returns:
+            Path to a non-existent temporary directory location.
+        """
+        dir_prefix = prefix or self._prefix
+        unique_id = uuid.uuid4().hex
+        dirname = f"{dir_prefix}{unique_id}{suffix}"
+        return self._base_dir / dirname
 
     async def cleanup(self) -> None:
         """Clean up all tracked temporary files and directories."""

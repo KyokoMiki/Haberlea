@@ -13,6 +13,7 @@ import os
 import re
 import shutil
 import zipfile
+from collections.abc import Callable
 from functools import reduce
 from pathlib import Path
 from typing import Any
@@ -169,6 +170,8 @@ async def _download_with_retry(
     headers: dict[str, str],
     session: aiohttp.ClientSession,
     task_id: str | None,
+    chunk_processor: Callable[[bytes, int], bytes] | None = None,
+    chunk_size: int = 1048576,
 ) -> None:
     """Download file with retry logic.
 
@@ -178,16 +181,24 @@ async def _download_with_retry(
         headers: HTTP headers.
         session: aiohttp session.
         task_id: Task ID for progress reporting.
+        chunk_processor: Optional callback to process each chunk before writing.
+            Useful for streaming decryption during download.
+        chunk_size: Size of chunks to download. Defaults to 1 MiB.
     """
-    logger.debug(f"Starting download attempt for: {url}")
+    logger.debug("Starting download attempt for: %s", url)
     async with session.get(url, headers=headers, ssl=False) as response:
         response.raise_for_status()
         total = response.content_length or 0
 
         async with await anyio.open_file(file_location, "wb") as f:
-            async for chunk in response.content.iter_chunked(1048576):
+            chunk_index = 0
+            async for chunk in response.content.iter_chunked(chunk_size):
                 if chunk:
+                    if chunk_processor:
+                        # Run CPU-intensive decryption in thread pool
+                        chunk = await asyncify(chunk_processor)(chunk, chunk_index)
                     await f.write(chunk)
+                    chunk_index += 1
                     if task_id and total > 0:
                         await advance(task_id, len(chunk), total)
 
@@ -199,6 +210,8 @@ async def download_file(
     artwork_settings: dict[str, Any] | None = None,
     session: aiohttp.ClientSession | None = None,
     task_id: str | None = None,
+    chunk_processor: Callable[[bytes, int], bytes] | None = None,
+    chunk_size: int = 1048576,
 ) -> None:
     """Downloads a file asynchronously using aiohttp with automatic retry.
 
@@ -212,6 +225,11 @@ async def download_file(
         artwork_settings: Optional settings for resizing artwork.
         session: Optional aiohttp session to reuse.
         task_id: Optional task ID for progress reporting.
+        chunk_processor: Optional callback to process each chunk before writing.
+            Signature: (chunk: bytes, chunk_index: int) -> bytes.
+            Useful for streaming decryption during download.
+        chunk_size: Size of chunks to download in bytes. Defaults to 1 MiB.
+            Set to match decryption block size when using chunk_processor.
 
     Raises:
         KeyboardInterrupt: If the download is interrupted by the user.
@@ -240,14 +258,20 @@ async def download_file(
 
     try:
         await _download_with_retry(
-            url, file_location, headers, session, effective_task_id
+            url,
+            file_location,
+            headers,
+            session,
+            effective_task_id,
+            chunk_processor,
+            chunk_size,
         )
 
         if artwork_settings:
             _process_artwork(file_location, artwork_settings)
     except KeyboardInterrupt:
         if os.path.isfile(file_location):
-            logger.warning(f'Deleting partially downloaded file "{file_location}"')
+            logger.warning('Deleting partially downloaded file "%s"', file_location)
             silentremove(file_location)
         raise KeyboardInterrupt from None
     finally:
@@ -426,7 +450,7 @@ def set_temporary_setting(
 
 
 async def delete_path(path: Path) -> None:
-    """Delete a file or directory asynchronously where possible.
+    """Delete a file or directory asynchronously.
 
     Args:
         path: Path to delete (file or directory).
@@ -434,12 +458,40 @@ async def delete_path(path: Path) -> None:
     try:
         if path.is_dir():
             await asyncify(shutil.rmtree)(str(path))
-            logger.info("Deleted directory: %s", path)
+            logger.debug("Deleted directory: %s", path)
         else:
-            await anyio.Path(path).unlink()
-            logger.info("Deleted file: %s", path)
+            await anyio.Path(path).unlink(missing_ok=True)
+            logger.debug("Deleted file: %s", path)
     except OSError:
         logger.exception("Failed to delete %s", path)
+
+
+async def move_file(src: str | Path, dst: str | Path) -> None:
+    """Move a file or directory asynchronously.
+
+    This is an async wrapper around shutil.move that runs in a thread pool
+    to avoid blocking the event loop. Handles both same-filesystem moves
+    (which are instant) and cross-filesystem moves (which require copying).
+
+    If source and destination are the same, this function does nothing.
+
+    Args:
+        src: Source path (file or directory).
+        dst: Destination path.
+
+    Raises:
+        OSError: If the move operation fails.
+    """
+    src_path = Path(src).resolve()
+    dst_path = Path(dst).resolve()
+
+    # Skip if source and destination are the same
+    if src_path == dst_path:
+        logger.debug("Source and destination are the same, skipping move: %s", src)
+        return
+
+    await asyncify(shutil.move)(str(src), str(dst))
+    logger.debug("Moved %s to %s", src, dst)
 
 
 def compress_to_zip(

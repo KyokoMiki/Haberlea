@@ -68,6 +68,7 @@ from .utils.utils import (
     compare_images,
     download_file,
     get_image_resolution,
+    move_file,
     sanitise_name,
 )
 
@@ -172,10 +173,10 @@ class Downloader:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: Any,
+        exc_tb: object,
     ) -> None:
-        """Exit async context manager and cleanup resources."""
-        await self._temp.cleanup()
+        """Exit async context manager."""
+        pass
 
     # ========================================================================
     # Queue Population Methods - Phase 1: Collect all tracks
@@ -713,6 +714,11 @@ class Downloader:
         except TagSavingFailure:
             print("Tagging failed")
 
+        # Move to final location (no-op if already at final location)
+        final_location = f"{track_location_name}.{container.name}"
+        await move_file(track_location, final_location)
+        track_location = final_location
+
         return track_location, container
 
     def _update_track_numbering(self, task: TrackTask, track_info: TrackInfo) -> None:
@@ -1114,6 +1120,69 @@ class Downloader:
 
         return track_location_name, download_location
 
+    async def _execute_download(
+        self,
+        track_id: str,
+        download_info: TrackDownloadInfo,
+        download_location: str,
+    ) -> None:
+        """Execute the actual file download.
+
+        Args:
+            track_id: Track identifier for progress reporting.
+            download_info: Download information from module.
+            download_location: Target download location.
+
+        Raises:
+            ValueError: If download type is unsupported or file_url is None.
+        """
+        match download_info.download_type:
+            case DownloadEnum.URL:
+                if download_info.file_url is None:
+                    raise ValueError(
+                        f"Track {track_id}: file_url is None for URL download type"
+                    )
+                await download_file(
+                    download_info.file_url,
+                    download_location,
+                    headers=download_info.file_url_headers,
+                    task_id=track_id,
+                )
+            case DownloadEnum.DIRECT:
+                pass
+            case _:
+                raise ValueError(
+                    f"Unsupported download type: {download_info.download_type}"
+                )
+
+    async def _handle_codec_change(
+        self,
+        download_location: str,
+        track_location_name: str,
+        new_codec: CodecEnum,
+    ) -> str:
+        """Handle codec change by moving file to new location with correct extension.
+
+        Args:
+            download_location: Current file location.
+            track_location_name: Track location without extension.
+            new_codec: New codec information.
+
+        Returns:
+            New download location with correct extension.
+        """
+        new_container = new_codec.container
+
+        if settings.global_settings.advanced.download_to_temp:
+            new_location = str(
+                self._temp.get_temp_filename(suffix=f".{new_container.name}")
+            )
+        else:
+            new_location = f"{track_location_name}.{new_container.name}"
+
+        await move_file(download_location, new_location)
+        return new_location
+
     async def _download_track_file(
         self,
         track_id: str,
@@ -1124,43 +1193,50 @@ class Downloader:
         container: ContainerEnum,
         module: ModuleBase,
     ) -> tuple[str | None, CodecEnum, ContainerEnum]:
-        """Download the actual track file."""
+        """Download the actual track file.
+
+        Downloads to a temporary location if download_to_temp is enabled,
+        otherwise downloads directly to the final location.
+
+        Args:
+            track_id: Track identifier.
+            track_info: Track information.
+            track_location: Final track location path.
+            track_location_name: Track location without extension.
+            codec: Track codec.
+            container: Track container.
+            module: Module instance.
+
+        Returns:
+            Tuple of (download_location, codec, container).
+        """
+        # Determine download location based on settings
+        if settings.global_settings.advanced.download_to_temp:
+            download_location = str(
+                self._temp.get_temp_filename(suffix=f".{container.name}")
+            )
+        else:
+            download_location = track_location
+
         # Set current task for progress reporting
         set_current_task(track_id)
         try:
             download_info: TrackDownloadInfo = await module.get_track_download(
-                target_path=track_location,
+                target_path=download_location,
                 url=track_info.download_url or "",
                 data=track_info.download_data,
             )
 
-            match download_info.download_type:
-                case DownloadEnum.URL:
-                    if download_info.file_url is None:
-                        raise ValueError(
-                            f"Track {track_id}: file_url is None for URL download type"
-                        )
-                    await download_file(
-                        download_info.file_url,
-                        track_location,
-                        headers=download_info.file_url_headers,
-                        task_id=track_id,
-                    )
-                case DownloadEnum.DIRECT:
-                    pass
-                case _:
-                    raise ValueError(
-                        f"Unsupported download type: {download_info.download_type}"
-                    )
+            await self._execute_download(track_id, download_info, download_location)
 
             if download_info.different_codec:
                 codec = download_info.different_codec
                 container = codec.container
-                old_location = track_location
-                track_location = f"{track_location_name}.{container.name}"
-                shutil.move(old_location, track_location)
+                download_location = await self._handle_codec_change(
+                    download_location, track_location_name, codec
+                )
 
-            return track_location, codec, container
+            return download_location, codec, container
 
         except KeyboardInterrupt:
             raise
@@ -1199,8 +1275,8 @@ class Downloader:
             if album_id and album_id in self._cover_cache:
                 return self._cover_cache[album_id]
 
-        # Download cover
-        cover_temp = await self._temp.path()
+        # Generate temp path for cover (caller manages lifetime via caching)
+        cover_temp = self._temp.get_temp_filename(suffix=".jpg")
 
         if third_party and third_party != module_name:
             result = await self._download_cover_third_party(
@@ -1230,7 +1306,10 @@ class Downloader:
         cover_temp: Path,
     ) -> Path:
         """Download cover using third-party module."""
-        default_temp = await self._temp.download(track_info.cover_url)
+        # Download default cover to temp location
+        default_temp = self._temp.get_temp_filename(suffix=".jpg")
+        await download_file(track_info.cover_url, str(default_temp))
+
         test_options = CoverOptions(
             file_type=ImageFileTypeEnum.jpg,
             resolution=get_image_resolution(str(default_temp)),
@@ -1245,8 +1324,14 @@ class Downloader:
             test_cover = await cover_module.get_track_cover(
                 result.result_id, test_options, data=result.data
             )
-            test_temp = await self._temp.download(test_cover.url)
+            # Download test cover to temp location
+            test_temp = self._temp.get_temp_filename(suffix=".jpg")
+            await download_file(test_cover.url, str(test_temp))
+
             rms = compare_images(str(default_temp), str(test_temp))
+
+            # Clean up test cover
+            test_temp.unlink(missing_ok=True)
 
             if rms < rms_threshold:
                 jpg_options = CoverOptions(
@@ -1265,10 +1350,12 @@ class Downloader:
                     str(cover_temp),
                     artwork_settings=msgspec.structs.asdict(artwork_settings),
                 )
+                # Clean up default cover
+                default_temp.unlink(missing_ok=True)
                 return cover_temp
 
         # Fallback to default cover
-        shutil.move(str(default_temp), str(cover_temp))
+        await move_file(str(default_temp), str(cover_temp))
         return cover_temp
 
     async def _search_by_tags(
@@ -1394,7 +1481,10 @@ class Downloader:
         codec: CodecEnum,
         container: ContainerEnum,
     ) -> ConversionResult:
-        """Convert track if conversion is configured."""
+        """Convert track if conversion is configured.
+
+        Uses temporary files for conversion to avoid conflicts.
+        """
         conversions = self._get_codec_conversions()
 
         if codec not in conversions:
@@ -1426,7 +1516,16 @@ class Downloader:
             conversion_flags = {}
 
         conv_flags = conversion_flags.get(new_codec, {})
-        new_track_location = f"{track_location_name}.{new_codec.container.name}"
+
+        # Determine output location based on download_to_temp setting
+        if settings.global_settings.advanced.download_to_temp:
+            # Convert to temporary file
+            new_track_location = str(
+                self._temp.get_temp_filename(suffix=f".{new_codec.container.name}")
+            )
+        else:
+            # Convert directly to final location
+            new_track_location = f"{track_location_name}.{new_codec.container.name}"
 
         async with self._temp.file(suffix=f".{new_codec.container.name}") as temp_path:
             try:

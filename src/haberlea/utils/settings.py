@@ -163,6 +163,9 @@ class AdvancedSettings(msgspec.Struct, kw_only=True):
         ignore_existing_files: Re-download existing files.
         abort_download_when_single_failed: Stop on first track failure.
         concurrent_downloads: Maximum concurrent track downloads.
+        download_to_temp: Download to temporary directory first, then move to final
+            location after tagging. Provides atomic operations but may be slower
+            on some systems.
     """
 
     advanced_login_system: bool = False
@@ -181,6 +184,7 @@ class AdvancedSettings(msgspec.Struct, kw_only=True):
     ignore_existing_files: bool = False
     abort_download_when_single_failed: bool = False
     concurrent_downloads: int = 5
+    download_to_temp: bool = True
 
 
 class WebuiSettings(msgspec.Struct, kw_only=True):

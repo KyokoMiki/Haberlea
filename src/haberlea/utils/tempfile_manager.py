@@ -5,9 +5,8 @@ to temporary file handling using anyio for native async support.
 
 Features:
 - Native async temporary file/directory operations via anyio
-- Automatic cleanup via async context managers
+- Automatic cleanup via anyio's built-in context managers
 - pathlib.Path integration
-- Proper resource management
 - Configurable base directory from settings
 """
 
@@ -16,40 +15,40 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Any
 
 from anyio import NamedTemporaryFile, TemporaryDirectory
 
 from .settings import settings
-from .utils import delete_path, download_file
 
 
 class TempFileManager:
-    """Centralized temporary file manager with automatic cleanup.
+    """Centralized temporary file manager using anyio's automatic cleanup.
 
-    This class provides a modern, async-native approach to temporary file
-    handling using anyio. All temporary files created through this manager
-    are tracked and automatically cleaned up when the manager exits its context.
+    This class provides both automatic cleanup (via anyio context managers) and
+    manual path generation depending on the use case.
+
+    Use anyio context managers when:
+    - File lifetime is scoped to a specific operation
+    - Automatic cleanup is desired
+
+    Use path generation when:
+    - File needs to persist across multiple operations
+    - File lifetime is managed by caller (e.g., caching, moving to final location)
 
     Example:
         ```python
-        async with TempFileManager() as tmp:
-            # Temporary file with auto-cleanup via context manager
-            async with tmp.file(suffix=".flac") as path:
-                await download_file(url, str(path))
-                process_file(path)
-            # File is automatically deleted when exiting inner context
+        tmp = TempFileManager()
 
-            # Temporary directory with auto-cleanup
-            async with tmp.dir() as dir_path:
-                file1 = dir_path / "segment_001.mp4"
-                file2 = dir_path / "segment_002.mp4"
-            # Directory and contents are automatically deleted
+        # Auto-cleanup: anyio handles deletion
+        async with tmp.file(suffix=".flac") as path:
+            await download_file(url, str(path))
+            process_file(path)
 
-            # Download directly to temp (tracked for cleanup)
-            cover_path = await tmp.download(url, suffix=".jpg")
-            # ... use cover_path ...
-        # All remaining tracked files are cleaned up on exit
+        # Manual cleanup: caller manages lifetime
+        temp_path = tmp.get_temp_filename(suffix=".flac")
+        await download_file(url, str(temp_path))
+        # ... use temp_path ...
+        temp_path.unlink()  # Manual cleanup
         ```
     """
 
@@ -71,25 +70,11 @@ class TempFileManager:
             # Use temp_path from settings if configured, otherwise system temp
             temp_path = settings.global_settings.general.temp_path
             self._base_dir = Path(temp_path) if temp_path else Path(gettempdir())
-        
+
         # Ensure base directory exists
         self._base_dir.mkdir(parents=True, exist_ok=True)
-        
+
         self._prefix = prefix
-        self._tracked_paths: set[Path] = set()
-
-    async def __aenter__(self) -> "TempFileManager":
-        """Enter async context manager."""
-        return self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: Any,
-    ) -> None:
-        """Exit async context manager and cleanup all tracked resources."""
-        await self.cleanup()
 
     @asynccontextmanager
     async def file(
@@ -97,7 +82,9 @@ class TempFileManager:
         suffix: str = "",
         prefix: str | None = None,
     ) -> AsyncIterator[Path]:
-        """Create a temporary file with automatic cleanup.
+        """Create a temporary file with automatic cleanup via anyio.
+
+        The file will be automatically deleted when exiting the context.
 
         Args:
             suffix: File suffix (e.g., ".flac", ".jpg").
@@ -112,15 +99,9 @@ class TempFileManager:
             suffix=suffix,
             prefix=file_prefix,
             dir=str(self._base_dir),
-            delete=False,
+            delete=True,
         ) as f:
-            path = Path(str(f.name))
-            self._tracked_paths.add(path)
-            try:
-                yield path
-            finally:
-                await delete_path(path)
-                self._tracked_paths.discard(path)
+            yield Path(str(f.name))
 
     @asynccontextmanager
     async def dir(
@@ -128,7 +109,7 @@ class TempFileManager:
         suffix: str = "",
         prefix: str | None = None,
     ) -> AsyncIterator[Path]:
-        """Create a temporary directory with automatic cleanup.
+        """Create a temporary directory with automatic cleanup via anyio.
 
         Args:
             suffix: Directory suffix.
@@ -142,99 +123,17 @@ class TempFileManager:
             suffix=suffix,
             prefix=dir_prefix,
             dir=str(self._base_dir),
-        ) as temp_dir_path:
-            path = Path(str(temp_dir_path))
-            self._tracked_paths.add(path)
-            try:
-                yield path
-            finally:
-                self._tracked_paths.discard(path)
-
-    async def path(self, suffix: str = "", prefix: str | None = None) -> Path:
-        """Create a temporary file path without creating the file.
-
-        The caller is responsible for cleanup via remove().
-
-        Args:
-            suffix: File suffix.
-            prefix: File prefix. Defaults to manager's prefix.
-
-        Returns:
-            Path to a non-existent temporary file location.
-        """
-        file_prefix = prefix or self._prefix
-        # Use UUID4 for guaranteed uniqueness
-        unique_id = uuid.uuid4().hex
-        filename = f"{file_prefix}{unique_id}{suffix}"
-        path = self._base_dir / filename
-
-        self._tracked_paths.add(path)
-        return path
-
-    async def save(
-        self,
-        data: bytes,
-        suffix: str = "",
-        prefix: str | None = None,
-    ) -> Path:
-        """Save bytes to a temporary file.
-
-        Args:
-            data: Bytes to save.
-            suffix: File suffix.
-            prefix: File prefix.
-
-        Returns:
-            Path to the temporary file containing the data.
-        """
-        file_prefix = prefix or self._prefix
-        async with NamedTemporaryFile(
-            mode="wb",
-            suffix=suffix,
-            prefix=file_prefix,
-            dir=str(self._base_dir),
-            delete=False,
-        ) as f:
-            await f.write(data)
-            path = Path(str(f.name))
-            self._tracked_paths.add(path)
-            return path
-
-    async def download(
-        self,
-        url: str,
-        headers: dict[str, str] | None = None,
-        suffix: str = "",
-        session: Any = None,
-        task_id: str | None = None,
-    ) -> Path:
-        """Download a file to a temporary location.
-
-        Args:
-            url: URL to download from.
-            headers: Optional HTTP headers.
-            suffix: File suffix (e.g., ".jpg", ".flac").
-            session: Optional aiohttp session to reuse.
-            task_id: Optional task ID for progress reporting.
-
-        Returns:
-            Path to the downloaded temporary file.
-        """
-        path = await self.path(suffix=suffix)
-        await download_file(
-            url,
-            str(path),
-            headers=headers,
-            session=session,
-            task_id=task_id,
-        )
-        return path
+        ) as temp_dir:
+            yield Path(str(temp_dir))
 
     def get_temp_filename(self, suffix: str = "", prefix: str | None = None) -> Path:
-        """Generate a temporary file path without tracking or creating the file.
+        """Generate a temporary file path without creating or tracking the file.
 
         The caller is responsible for creating and cleaning up the file.
-        This method does not track the path for automatic cleanup.
+        Use this when file lifetime needs to be managed manually, such as:
+        - Files that will be moved to a final location
+        - Files that need to be cached across operations
+        - Files passed to external code that creates them
 
         Args:
             suffix: File suffix (e.g., ".flac", ".jpg").
@@ -244,15 +143,13 @@ class TempFileManager:
             Path to a non-existent temporary file location.
         """
         file_prefix = prefix or self._prefix
-        unique_id = uuid.uuid4().hex
-        filename = f"{file_prefix}{unique_id}{suffix}"
+        filename = f"{file_prefix}{uuid.uuid4()}{suffix}"
         return self._base_dir / filename
 
     def get_temp_dirname(self, suffix: str = "", prefix: str | None = None) -> Path:
-        """Generate a temporary directory path without tracking or creating it.
+        """Generate a temporary directory path without creating or tracking it.
 
         The caller is responsible for creating and cleaning up the directory.
-        This method does not track the path for automatic cleanup.
 
         Args:
             suffix: Directory suffix.
@@ -262,12 +159,5 @@ class TempFileManager:
             Path to a non-existent temporary directory location.
         """
         dir_prefix = prefix or self._prefix
-        unique_id = uuid.uuid4().hex
-        dirname = f"{dir_prefix}{unique_id}{suffix}"
+        dirname = f"{dir_prefix}{uuid.uuid4()}{suffix}"
         return self._base_dir / dirname
-
-    async def cleanup(self) -> None:
-        """Clean up all tracked temporary files and directories."""
-        for path in list(self._tracked_paths):
-            await delete_path(path)
-        self._tracked_paths.clear()

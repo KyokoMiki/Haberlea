@@ -24,7 +24,8 @@ class GeneralSettings(msgspec.Struct, kw_only=True):
         download_path: Default download directory path.
         download_quality: Audio quality tier (minimum/low/medium/high/lossless/hifi).
         search_limit: Maximum number of search results to return.
-        temp_path: Temporary files directory path. Defaults to system temp directory.
+        temp_path: Temporary files directory path. Defaults to "" (empty string),
+            which triggers fallback to the system temp directory.
     """
 
     download_path: str = "./downloads/"
@@ -308,9 +309,7 @@ def get_default_settings() -> AppSettings:
 
 # Global settings singleton
 _app_settings: AppSettings | None = None
-_settings_path: Path = (
-    Path(platformdirs.user_config_dir("Haberlea", ensure_exists=True)) / "settings.toml"
-)
+_settings_path: Path = Path(platformdirs.user_config_dir("Haberlea")) / "settings.toml"
 
 
 class _SettingsProxy:

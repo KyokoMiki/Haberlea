@@ -39,10 +39,10 @@ class TempFileManager:
         ```python
         tmp = TempFileManager()
 
-        # Auto-cleanup: anyio handles deletion
+        # Auto-cleanup: file deleted when context exits
         async with tmp.file(suffix=".flac") as path:
-            await download_file(url, str(path))
-            process_file(path)
+            await download_to_file(url, path)
+            await process_file(path)
 
         # Manual cleanup: caller manages lifetime
         temp_path = tmp.get_temp_filename(suffix=".flac")
@@ -82,9 +82,11 @@ class TempFileManager:
         suffix: str = "",
         prefix: str | None = None,
     ) -> AsyncIterator[Path]:
-        """Create a temporary file with automatic cleanup via anyio.
+        """Create a temporary file path with automatic cleanup.
 
-        The file will be automatically deleted when exiting the context.
+        The file is created but immediately closed, allowing the caller to
+        open it as needed. The file will be automatically deleted when
+        exiting the context.
 
         Args:
             suffix: File suffix (e.g., ".flac", ".jpg").
@@ -100,7 +102,9 @@ class TempFileManager:
             prefix=file_prefix,
             dir=str(self._base_dir),
             delete=True,
+            delete_on_close=False,
         ) as f:
+            await f.aclose()
             yield Path(str(f.name))
 
     @asynccontextmanager

@@ -1331,7 +1331,7 @@ class Downloader:
             rms = compare_images(str(default_temp), str(test_temp))
 
             # Clean up test cover
-            test_temp.unlink(missing_ok=True)
+            await anyio.Path(test_temp).unlink(missing_ok=True)
 
             if rms < rms_threshold:
                 jpg_options = CoverOptions(
@@ -1351,7 +1351,7 @@ class Downloader:
                     artwork_settings=msgspec.structs.asdict(artwork_settings),
                 )
                 # Clean up default cover
-                default_temp.unlink(missing_ok=True)
+                await anyio.Path(default_temp).unlink(missing_ok=True)
                 return cover_temp
 
         # Fallback to default cover

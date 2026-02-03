@@ -233,7 +233,7 @@ class DownloadQueue:
             A unique job identifier.
         """
         # Use UUID4 for guaranteed uniqueness
-        return uuid.uuid4().hex
+        return str(uuid.uuid4())
 
     async def create_job(
         self,

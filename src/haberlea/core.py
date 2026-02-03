@@ -142,8 +142,6 @@ class Haberlea:
         # Track current account index for each module (for multi-account support)
         self._current_account_index: dict[str, int] = {}
 
-        self._config_dir.mkdir(parents=True, exist_ok=True)
-
         # Initialize global settings singleton with correct path
         set_settings_path(self._settings_path)
         self._configure_logging()
@@ -963,7 +961,6 @@ async def haberlea_core_download(
     # Create job completion callback that runs extensions in background
     async def on_job_complete(job: DownloadJob) -> None:
         """Spawns background task to run extensions when job completes."""
-        nonlocal extension_tasks
         if extension_tasks is not None and job.download_path:
             extension_tasks.start_soon(_run_extensions, haberlea_session, job)
 

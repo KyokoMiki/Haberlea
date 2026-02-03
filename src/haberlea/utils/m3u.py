@@ -26,7 +26,7 @@ class M3UPlaylistWriter:
 
     # Class-level lock registry for concurrent access to the same playlist
     _locks: ClassVar[dict[str, anyio.Lock]] = {}
-    _locks_lock: ClassVar[anyio.Lock | None] = None
+    _locks_lock: ClassVar[anyio.Lock] = anyio.Lock()
 
     def __init__(self, extended: bool, path_mode: str) -> None:
         """Initialize playlist writer.
@@ -48,10 +48,6 @@ class M3UPlaylistWriter:
         Returns:
             An anyio.Lock for the specified playlist.
         """
-        # Lazily create the class-level lock if it doesn't exist
-        if cls._locks_lock is None:
-            cls._locks_lock = anyio.Lock()
-
         async with cls._locks_lock:
             if playlist_path not in cls._locks:
                 cls._locks[playlist_path] = anyio.Lock()
@@ -128,7 +124,5 @@ class M3UPlaylistWriter:
         Call this periodically or after batch operations to free memory
         from locks that are no longer needed.
         """
-        if cls._locks_lock is None:
-            return
         async with cls._locks_lock:
             cls._locks.clear()

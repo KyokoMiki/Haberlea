@@ -194,13 +194,14 @@ async def _download_with_retry(
             chunk_index = 0
             async for chunk in response.content.iter_chunked(chunk_size):
                 if chunk:
+                    original_len = len(chunk)
                     if chunk_processor:
                         # Run CPU-intensive decryption in thread pool
                         chunk = await asyncify(chunk_processor)(chunk, chunk_index)
                     await f.write(chunk)
                     chunk_index += 1
                     if task_id and total > 0:
-                        await advance(task_id, len(chunk), total)
+                        await advance(task_id, original_len, total)
 
 
 async def download_file(

@@ -91,6 +91,28 @@ class DownloadPage:
                     on_change=self._on_dry_run_change,
                 )
 
+                # Archiver extension toggle (if installed)
+                archiver_settings = settings.extensions.get("post_download", {}).get(
+                    "archiver"
+                )
+                if archiver_settings is not None:
+                    ui.checkbox(
+                        _("Archiver"),
+                        value=archiver_settings.get("enabled", True),
+                        on_change=self._on_archiver_change,
+                    )
+
+                # Gofile Uploader extension toggle (if installed)
+                gofile_settings = settings.extensions.get("post_download", {}).get(
+                    "gofile_uploader"
+                )
+                if gofile_settings is not None:
+                    ui.checkbox(
+                        _("Gofile Uploader"),
+                        value=gofile_settings.get("enabled", True),
+                        on_change=self._on_gofile_change,
+                    )
+
     def _on_dry_run_change(self, e: Any) -> None:
         """Handles dry run checkbox change and saves settings.
 
@@ -102,6 +124,39 @@ class DownloadPage:
         ui.notify(
             f"{_('Dry Run')} {_('enabled') if e.value else _('disabled')}", type="info"
         )
+
+    def _on_extension_toggle(self, key: str, label: str, e: Any) -> None:
+        """Handles extension toggle checkbox change and saves settings.
+
+        Args:
+            key: Extension key in the post_download settings.
+            label: Display label for the notification.
+            e: The change event containing the new value.
+        """
+        ext_settings = settings.extensions.get("post_download", {}).get(key)
+        if ext_settings is not None:
+            ext_settings["enabled"] = e.value
+            save_settings(_settings_path, settings.current)
+            ui.notify(
+                f"{_(label)} {_('enabled') if e.value else _('disabled')}",
+                type="info",
+            )
+
+    def _on_archiver_change(self, e: Any) -> None:
+        """Handles archiver checkbox change and saves settings.
+
+        Args:
+            e: The change event containing the new value.
+        """
+        self._on_extension_toggle("archiver", "Archiver", e)
+
+    def _on_gofile_change(self, e: Any) -> None:
+        """Handles gofile uploader checkbox change and saves settings.
+
+        Args:
+            e: The change event containing the new value.
+        """
+        self._on_extension_toggle("gofile_uploader", "Gofile Uploader", e)
 
     def _render_queue_card(self) -> None:
         """Render download queue card."""

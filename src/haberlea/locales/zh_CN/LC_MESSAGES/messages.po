@@ -284,6 +284,15 @@ msgstr "保留转换前原文件"
 msgid "Cover Variance Threshold"
 msgstr "封面差异阈值"
 
+msgid "Temporary Files Path"
+msgstr "临时文件路径"
+
+msgid "Leave empty to use system temp directory"
+msgstr "留空将使用系统临时目录"
+
+msgid "Download to Temp Directory First"
+msgstr "先下载到临时目录"
+
 # Settings - Modules
 msgid "Modules"
 msgstr "模块"
@@ -461,6 +470,12 @@ msgstr "下载队列"
 
 msgid "Clear"
 msgstr "清空"
+
+msgid "Archiver"
+msgstr "归档器"
+
+msgid "Gofile Uploader"
+msgstr "Gofile 上传器"
 
 msgid "Download Log"
 msgstr "下载日志"

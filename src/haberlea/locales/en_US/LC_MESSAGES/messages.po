@@ -284,6 +284,15 @@ msgstr "Keep Original After Conversion"
 msgid "Cover Variance Threshold"
 msgstr "Cover Variance Threshold"
 
+msgid "Temporary Files Path"
+msgstr "Temporary Files Path"
+
+msgid "Leave empty to use system temp directory"
+msgstr "Leave empty to use system temp directory"
+
+msgid "Download to Temp Directory First"
+msgstr "Download to Temp Directory First"
+
 # Settings - Modules
 msgid "Modules"
 msgstr "Modules"
@@ -461,6 +470,12 @@ msgstr "Download Queue"
 
 msgid "Clear"
 msgstr "Clear"
+
+msgid "Archiver"
+msgstr "Archiver"
+
+msgid "Gofile Uploader"
+msgstr "Gofile Uploader"
 
 msgid "Download Log"
 msgstr "Download Log"

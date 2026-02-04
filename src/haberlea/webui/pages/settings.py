@@ -125,6 +125,12 @@ class SettingsPage:
                 max=50,
             ).classes("w-48").bind_value(gs.general, "search_limit")
 
+            ui.input(
+                label=_("Temporary Files Path"),
+                value=gs.general.temp_path,
+                placeholder=_("Leave empty to use system temp directory"),
+            ).classes("w-full mb-2").bind_value(gs.general, "temp_path")
+
         with ui.card().classes("w-full mt-4"):
             ui.label(_("Artist Downloading")).classes("text-lg font-semibold mb-4")
 
@@ -386,6 +392,11 @@ class SettingsPage:
                 min=0,
                 max=100,
             ).classes("w-48 mb-4").bind_value(gs.advanced, "cover_variance_threshold")
+
+            ui.checkbox(
+                _("Download to Temp Directory First"),
+                value=gs.advanced.download_to_temp,
+            ).bind_value(gs.advanced, "download_to_temp")
 
     def _render_webui_settings(self) -> None:
         """Renders WebUI settings section."""

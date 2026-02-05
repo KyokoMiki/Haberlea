@@ -145,6 +145,7 @@ class Haberlea:
         # Initialize global settings singleton with correct path
         set_settings_path(self._settings_path)
         self._configure_logging()
+        logger.debug("Settings file path: %s", self._settings_path)
 
         self._discovered_extensions = discover_extensions()
         self._register_extensions()
@@ -529,7 +530,7 @@ class Haberlea:
         if new_setting_detected:
             print(
                 "New settings detected, or the configuration has been reset. "
-                "Please update settings.toml"
+                f"Please update settings file: {self._settings_path}"
             )
             raise SystemExit(0)
 

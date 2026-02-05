@@ -20,6 +20,9 @@ from ...utils.progress import ProgressEvent, clear_all, set_callback
 from ...utils.settings import _settings_path, save_settings, settings
 from ..state import add_log, get_app_storage
 
+# Maximum number of tracks to display initially before showing "Show all" button
+MAX_VISIBLE_TRACKS = 50
+
 
 class DownloadPage:
     """Download page component with job-based download queue display."""
@@ -41,6 +44,9 @@ class DownloadPage:
         self._job_expansions: dict[str, ui.expansion] = {}
         self._track_rows: dict[str, ui.row] = {}
         self._track_progress_bars: dict[str, ui.linear_progress] = {}
+
+        # Track "show all" state per job
+        self._job_show_all: dict[str, bool] = {}
 
         # Reference to the actual download queue (set during download)
         self._download_queue: DownloadQueue | None = None
@@ -285,13 +291,22 @@ class DownloadPage:
                 ).classes("w-full")
                 self._job_expansions[job_id] = expansion
                 with expansion:
-                    for track_id in track_ids[:50]:
+                    show_all = self._job_show_all.get(job_id, False)
+                    visible_ids = (
+                        track_ids if show_all else track_ids[:MAX_VISIBLE_TRACKS]
+                    )
+                    for track_id in visible_ids:
                         track_data = self._track_progress.get(track_id, {})
                         self._render_track_row(track_id, track_data)
-                    if len(track_ids) > 50:
-                        ui.label(
-                            f"... {_('and')} {len(track_ids) - 50} {_('more')}"
-                        ).classes("text-sm text-gray-500 py-1")
+
+                    # Show "Show all" button if there are more tracks
+                    remaining = len(track_ids) - MAX_VISIBLE_TRACKS
+                    if remaining > 0 and not show_all:
+                        ui.button(
+                            f"{_('Show all')} ({remaining} {_('more')})",
+                            icon="expand_more",
+                            on_click=lambda _, jid=job_id: self._show_all_tracks(jid),
+                        ).props("flat dense").classes("w-full mt-1")
 
     def _render_track_row(self, track_id: str, track_data: dict[str, Any]) -> None:
         """Renders a single track row within a job.
@@ -339,6 +354,15 @@ class DownloadPage:
                 progress_bar = ui.linear_progress(value=progress).classes("w-20")
                 self._track_progress_bars[track_id] = progress_bar
 
+    def _show_all_tracks(self, job_id: str) -> None:
+        """Toggles the show all state for a job's track list.
+
+        Args:
+            job_id: The job identifier.
+        """
+        self._job_show_all[job_id] = True
+        self._render_queue.refresh()
+
     def _clear_queue(self) -> None:
         """Clears the job queue."""
         self._jobs.clear()
@@ -346,6 +370,8 @@ class DownloadPage:
         self._job_cards.clear()
         self._job_progress_bars.clear()
         self._job_status_labels.clear()
+        self._job_expansions.clear()
+        self._job_show_all.clear()
         self._track_rows.clear()
         self._track_progress_bars.clear()
         self._render_queue.refresh()

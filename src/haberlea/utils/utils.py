@@ -467,6 +467,30 @@ async def delete_path(path: Path) -> None:
         logger.exception("Failed to delete %s", path)
 
 
+def _move_file_sync(src: str | Path, dst: str | Path) -> bool:
+    """Synchronous file move operation.
+
+    Args:
+        src: Source path (file or directory).
+        dst: Destination path.
+
+    Returns:
+        True if move was performed, False if skipped (same path).
+    """
+    src_path = Path(src).resolve()
+    dst_path = Path(dst).resolve()
+
+    # Skip if source and destination are the same
+    if src_path == dst_path:
+        return False
+
+    # Ensure parent directory exists
+    dst_path.parent.mkdir(parents=True, exist_ok=True)
+
+    shutil.move(src, dst)
+    return True
+
+
 async def move_file(src: str | Path, dst: str | Path) -> None:
     """Move a file or directory asynchronously.
 
@@ -483,16 +507,11 @@ async def move_file(src: str | Path, dst: str | Path) -> None:
     Raises:
         OSError: If the move operation fails.
     """
-    src_path = Path(src).resolve()
-    dst_path = Path(dst).resolve()
-
-    # Skip if source and destination are the same
-    if src_path == dst_path:
+    moved = await asyncify(_move_file_sync)(src, dst)
+    if moved:
+        logger.debug("Moved %s to %s", src, dst)
+    else:
         logger.debug("Source and destination are the same, skipping move: %s", src)
-        return
-
-    await asyncify(shutil.move)(str(src), str(dst))
-    logger.debug("Moved %s to %s", src, dst)
 
 
 def compress_to_zip(
